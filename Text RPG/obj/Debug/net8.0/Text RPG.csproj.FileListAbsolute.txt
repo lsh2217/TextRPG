@@ -12,3 +12,18 @@ C:\Users\97575\OneDrive\문서\바탕 화면\Project\Text RPG\Text RPG\obj\Debug
 C:\Users\97575\OneDrive\문서\바탕 화면\Project\Text RPG\Text RPG\obj\Debug\net8.0\Text RPG.pdb
 C:\Users\97575\OneDrive\문서\바탕 화면\Project\Text RPG\Text RPG\obj\Debug\net8.0\Text RPG.genruntimeconfig.cache
 C:\Users\97575\OneDrive\문서\바탕 화면\Project\Text RPG\Text RPG\obj\Debug\net8.0\ref\Text RPG.dll
+C:\Users\97575\OneDrive\문서\바탕 화면\Project\TextRPG\Text RPG\bin\Debug\net8.0\Text RPG.exe
+C:\Users\97575\OneDrive\문서\바탕 화면\Project\TextRPG\Text RPG\bin\Debug\net8.0\Text RPG.deps.json
+C:\Users\97575\OneDrive\문서\바탕 화면\Project\TextRPG\Text RPG\bin\Debug\net8.0\Text RPG.runtimeconfig.json
+C:\Users\97575\OneDrive\문서\바탕 화면\Project\TextRPG\Text RPG\bin\Debug\net8.0\Text RPG.dll
+C:\Users\97575\OneDrive\문서\바탕 화면\Project\TextRPG\Text RPG\bin\Debug\net8.0\Text RPG.pdb
+C:\Users\97575\OneDrive\문서\바탕 화면\Project\TextRPG\Text RPG\obj\Debug\net8.0\Text RPG.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\97575\OneDrive\문서\바탕 화면\Project\TextRPG\Text RPG\obj\Debug\net8.0\Text RPG.AssemblyInfoInputs.cache
+C:\Users\97575\OneDrive\문서\바탕 화면\Project\TextRPG\Text RPG\obj\Debug\net8.0\Text RPG.AssemblyInfo.cs
+C:\Users\97575\OneDrive\문서\바탕 화면\Project\TextRPG\Text RPG\obj\Debug\net8.0\Text RPG.csproj.CoreCompileInputs.cache
+C:\Users\97575\OneDrive\문서\바탕 화면\Project\TextRPG\Text RPG\obj\Debug\net8.0\Text RPG.sourcelink.json
+C:\Users\97575\OneDrive\문서\바탕 화면\Project\TextRPG\Text RPG\obj\Debug\net8.0\Text RPG.dll
+C:\Users\97575\OneDrive\문서\바탕 화면\Project\TextRPG\Text RPG\obj\Debug\net8.0\refint\Text RPG.dll
+C:\Users\97575\OneDrive\문서\바탕 화면\Project\TextRPG\Text RPG\obj\Debug\net8.0\Text RPG.pdb
+C:\Users\97575\OneDrive\문서\바탕 화면\Project\TextRPG\Text RPG\obj\Debug\net8.0\Text RPG.genruntimeconfig.cache
+C:\Users\97575\OneDrive\문서\바탕 화면\Project\TextRPG\Text RPG\obj\Debug\net8.0\ref\Text RPG.dll

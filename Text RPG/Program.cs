@@ -1,6 +1,10 @@
 ﻿using System.Collections.Generic;
 using System.Numerics;
 using System.Reflection.Emit;
+using System.Runtime.Serialization.Formatters.Binary;
+using System.Text.Json;
+using System.Xml.Serialization;
+using System.IO;
 
 namespace Text_RPG
 {
@@ -9,9 +13,16 @@ namespace Text_RPG
         static List<Item> ItemList = new List<Item>();
         static Dictionary<int, Item> PlayerInVentory = new Dictionary<int, Item>();
         static Dictionary<int, Item> ItemDic = new Dictionary<int, Item>();
+        static Player player = new Player();
         static int AtNum = -1;
-        static string SetStr = "";
         static int NumCheck;
+        static int gamestate = 1;
+        static int inVenItemNum = 0;
+        static int PlayerAct = 0;
+        static bool GameOver = true;
+        static string SetStr = "";
+        static FileSave fileSave = new FileSave();
+        static PlayerData playerData = new PlayerData();
 
         static void Main(string[] args)
         {
@@ -20,15 +31,9 @@ namespace Text_RPG
             Console.WriteLine("닉네임을 설정해주세요");
             string Setname = Console.ReadLine();
             string SetJob = "";
-            Player player = new Player();
-            int gamestate = 1;
-            int inVenItemNum = 0;
-            int PlayerAct = 0;
-            bool GameOver = true;
+            
             bool bReJob = true;
-            Dungeon dungeonLv1 = new Dungeon(20, 10, 1000, 1);
-            Dungeon dungeonLv2 = new Dungeon(30, 15, 2000, 3);
-            Dungeon dungeonLv3 = new Dungeon(40, 20, 3000, 5);
+
 
             Console.WriteLine("직업을 선택해주세요 \n1. 전사, 2. 궁수, 3. 도적");
             
@@ -64,275 +69,35 @@ namespace Text_RPG
                 switch (gamestate)
                 {
                     case (int)GameView.MainMenu:
-                        Console.WriteLine("스파르타 마을에 오신 여러분 환영합니다.");
-                        Console.WriteLine($">>> {player.Name}님 원하시는 행동을 입력해주세요");
-                        Console.WriteLine("1. 상태 보기\n2. 인벤토리\n3. 상점\n4. 던전\n5. 휴식하기\n0. 게임종료");
-                        Console.WriteLine();
-                        PlayerAct = PlayerAction();
-                        if (PlayerAct == -1)
-                        {
-                            Console.WriteLine("잘못된 입력입니다.\n");
-                        }
-                        else if(PlayerAct == 0) gamestate = PlayerAct;
-                        else gamestate = PlayerAct + 1;
-                        Console.Clear();
+                        MainMenu();                        
                         break;
+
                     case (int)GameView.PlayerState:
-                        Console.WriteLine("상태 보기\n캐릭터 정보가 표시됩니다.");
-                        Console.WriteLine($"Lv. {(player.Level == player.LevelDic.Count ? player.Level + " (만랩)" : player.Level)}");
-                        Console.WriteLine($"경험치: {player.Exp} / {player.LevelDic[player.Level]}");
-                        Console.WriteLine($"직업: ({player.Job})");
-                        Console.WriteLine($"공격력: {player.TotalAk()} ({player.Ak} + {player.itemSlot[1].Power})");
-                        Console.WriteLine($"방어력: {player.TotalDef()} ({player.Def} + {player.itemSlot[0].Power})");
-                        Console.WriteLine($"체  력: {player.Hp}");
-                        Console.WriteLine($"Gold : {player.Gold}");
-                        Console.WriteLine($"무기 : {player.itemSlot[1].Name} | + {player.itemSlot[1].Power}");
-                        Console.WriteLine($"방어구: : {player.itemSlot[0].Name} | + {player.itemSlot[0].Power}");                        
-                        Console.WriteLine("\n0. 나가기\n");
-                        PlayerAct = PlayerAction();
-                        if (PlayerAct == 0)
-                        {
-                            gamestate = 1;
-                        }
-                        else Console.WriteLine("잘못된 입력입니다.\n");
+                        PlayerState();
                         break;
 
                     case (int)GameView.InVentory:
-                        Console.WriteLine("인벤토리\n보유 중인 아이템을 관리할 수 있습니다.\n\n");
-                        Console.WriteLine($"[착용 아이템]\n무기: {player.itemSlot[1].Name}\n방어구: {player.itemSlot[0].Name}\n\n");
-                        Console.WriteLine("[아이템 목록]\n");
-                        for (int i = 1; i <= player.InVentoryList.Count; i++)
-                        {
-                            if (player.InVentoryList[i-1].Type == (int)ItemType.Weapon)
-                            {
-                                Console.WriteLine($"-{(player.itemSlot[1].Id == player.InVentoryList[i - 1].Id ? "[E]" : "")} {player.InVentoryList[i - 1].Name} | 공격력 +{player.InVentoryList[i - 1].Power} | {player.InVentoryList[i - 1].Text}");                                
-                            }
-                            else if (player.InVentoryList[i-1].Type == (int)ItemType.Defense)
-                            {
-                                Console.WriteLine($"-{(player.itemSlot[0].Id == player.InVentoryList[i - 1].Id ? "[E]" : "")} {player.InVentoryList[i - 1].Name} | 방어력 +{player.InVentoryList[i - 1].Power} | {player.InVentoryList[i - 1].Text}");                                
-                            }
-                        }
-                        Console.WriteLine("\n1. 장착 관리\n0. 나가기\n");
-                        PlayerAct = PlayerAction();
-                        if (PlayerAct == 0)
-                        {
-                            //메인 메뉴
-                            gamestate = 1;
-                        }
-                        else if (PlayerAct == 1)
-                        {
-                            Console.WriteLine("인벤토리 - 장착 관리\n보유 중인 아이템을 관리할 수 있습니다.\n\n");
-                            Console.WriteLine($"[착용 아이템]\n무기: {player.itemSlot[1].Name}\n방어구: {player.itemSlot[0].Name}\n\n");
-                            Console.WriteLine("[아이템 목록]\n");
-                            for (int i = 1; i < player.InVentoryList.Count + 1; i++)
-                            {
-                                if (player.InVentoryList[i-1].Type == (int)ItemType.Weapon)
-                                {
-                                    Console.WriteLine($"- {i} {(player.itemSlot[1].Id == player.InVentoryList[i - 1].Id ? "[E]" : "")} {player.InVentoryList[i - 1].Name} | 공격력 +{player.InVentoryList[i - 1].Power} | {player.InVentoryList[i - 1].Text}");
-
-                                }
-                                else if (player.InVentoryList[i-1].Type == (int)ItemType.Defense)
-                                {
-                                    Console.WriteLine($"- {i} {(player.itemSlot[0].Id == player.InVentoryList[i - 1].Id ? "[E]" : "")} {player.InVentoryList[i - 1].Name} | 방어력 +{player.InVentoryList[i - 1].Power} | {player.InVentoryList[i - 1].Text}");
-
-                                }
-                            }                 
-                            
-                            inVenItemNum = 0;
-                            Console.WriteLine("\n0. 나가기\n");
-                            int PlayerEquipAct = PlayerAction();
-                            
-                            if(PlayerEquipAct == 0)
-                            {
-                                gamestate = 1;
-                                PlayerEquipAct = -1;
-                            }
-                            else if (player.InVentoryList.Count == 0 || PlayerEquipAct > player.InVentoryList.Count || PlayerEquipAct < 0) Console.WriteLine("잘못된 입력입니다.\n");
-                            else
-                            {
-                                if (player.InVentoryList[PlayerEquipAct - 1].Type == (int)ItemType.Weapon)
-                                {
-                                    player.itemSlot[1] = player.InVentoryList[PlayerEquipAct - 1];
-                                }
-                                else if (player.InVentoryList[PlayerEquipAct - 1].Type == (int)(ItemType.Defense))
-                                {
-                                    player.itemSlot[0] = player.InVentoryList[PlayerEquipAct - 1];
-                                }
-                            }
-
-                        }
+                        InVentory();
                         break;
 
                     case (int)GameView.Shop:
-                        Console.WriteLine("상점\n필요한 아이템을 얻을 수 있는 상점입니다.\n\n");
-                        Console.WriteLine($"[보유 골드]\n{player.Gold} G\n\n");
-                        Console.WriteLine("[아이템 목록]\n");
-                        foreach (KeyValuePair<int, Item> item in ItemDic)
-                        {
-                            if(item.Key !=0)
-                            {
-                                Item shopItem = item.Value;
-                                if(shopItem.Type == (int)ItemType.Weapon)
-                                    Console.WriteLine($"- {shopItem.Name} | 공격력 +{shopItem.Power} | {shopItem.Text} | {(item.Value.ShopState ? shopItem.Price : "구매완료")} {(item.Value.ShopState ? "G" : "")}");
-                                else if(shopItem.Type == (int)ItemType.Defense)
-                                {
-                                    Console.WriteLine($"- {shopItem.Name} | 방어력 +{shopItem.Power} | {shopItem.Text} | {(item.Value.ShopState ? shopItem.Price : "구매완료")} {(item.Value.ShopState ? "G" : "")}");
-                                }
-                            }                            
-                        }
-                        Console.WriteLine("\n1. 아이템 구매\n2. 아이템 판매\n0. 나가기\n");
-                        PlayerAct = PlayerAction();
-                        if (PlayerAct == 0)
-                        {
-                            //메인 메뉴
-                            gamestate = 1;
-                        }
-                        else if (PlayerAct == 1)
-                        {
-                            //아이템 구매
-                            Console.WriteLine("상점 - 아이템 구매\n구매할 아이템을 선택해주세요..\n\n");
-                            Console.WriteLine($"[보유 골드]\n{player.Gold} G\n\n");
-                            Console.WriteLine("[아이템 목록]\n");
-                            foreach (KeyValuePair<int, Item> item in ItemDic)
-                            {
-                                if (item.Key != 0)
-                                {
-                                    Item shopItem = item.Value;
-                                    if (shopItem.Type == (int)ItemType.Weapon)
-                                    {
-                                        Console.WriteLine($"- {shopItem.Id} {shopItem.Name} | 공격력 +{shopItem.Power} | {shopItem.Text} | {(item.Value.ShopState ? shopItem.Price : "구매완료")} {(item.Value.ShopState ? "G" : "")}");
-                                    }
-                                    else if (shopItem.Type == (int)ItemType.Defense)
-                                    {
-                                        Console.WriteLine($"- {shopItem.Id} {shopItem.Name} | 방어력 +{shopItem.Power} | {shopItem.Text} | {(item.Value.ShopState ? shopItem.Price : "구매완료")} {(item.Value.ShopState ? "G" : "")}");
-                                    }
-                                }
-                            }
-                            Console.WriteLine("\n0. 나가기\n");
-                            int PlayerShopAct = PlayerAction();
-
-                            if (PlayerShopAct == 0)
-                            {
-                                PlayerAct = 0;
-                            }
-                            else
-                            {
-                                if (PlayerShopAct > ItemDic.Count || PlayerShopAct < 0) { Console.WriteLine("잘못된 입력입니다.\n"); }
-                                else if (!ItemDic[PlayerShopAct].ShopState)
-                                {
-                                    Console.WriteLine("이미 구매한 아이템입니다.\n");
-                                }
-                                else if (player.Gold >= ItemDic[PlayerShopAct].Price)
-                                {
-                                    player.Gold -= ItemDic[PlayerShopAct].Price;
-                                    player.AddInVentory(ItemDic[PlayerShopAct]);
-                                    ItemDic[PlayerShopAct].ShopState = false;
-                                    Console.WriteLine("구매를 완료했습니다.\n");
-                                }
-                                else
-                                {
-                                    Console.WriteLine("골드가 부족합니다.\n");
-                                }
-                            }
-                        }
-                        else if (PlayerAct == 2)
-                        {
-                            //아이템 판매
-                            Console.WriteLine("[아이템 목록]\n");
-                            Console.WriteLine("상점 - 아이템 판매\n판매할 아이템을 선택해주세요.\n\n");
-                            Console.WriteLine($"[보유 골드]\n{player.Gold} G\n\n");
-                            Console.WriteLine("[아이템 목록]\n");
-                            int num = 1;
-                            foreach (Item item in player.InVentoryList)
-                            {                                
-                                Console.WriteLine($"- {num} {item.Name} | 방어력 +{item.Power} | {item.Text} | {(item.Price)} G ");
-                                num++;
-                            }
-                            Console.WriteLine("\n0. 나가기\n");
-                            int PlayerShopAct = PlayerAction();
-
-                            if (PlayerShopAct == 0)
-                            {
-                                PlayerAct = 0;
-                            }
-                            else if (player.InVentoryList.Count == 0 || PlayerShopAct > player.InVentoryList.Count || PlayerShopAct < 0) Console.WriteLine("잘못된 입력입니다.\n");
-                            else
-                            {
-                                player.Gold += (int)(player.InVentoryList[PlayerShopAct-1].Price * 0.85f);
-                                ItemDic[player.InVentoryList[PlayerShopAct - 1].Id].ShopState = true;
-                                if (player.itemSlot[0].Id == player.InVentoryList[PlayerShopAct - 1].Id)
-                                {
-                                    player.itemSlot[0] = ItemDic[0];
-                                }
-                                else player.itemSlot[1] = ItemDic[0];
-                                player.InVentoryList.Remove(player.InVentoryList[PlayerShopAct - 1]);
-                            }
-                        }
-                        else Console.WriteLine("잘못된 입력입니다.\n");
+                        Shop();
                         break;
 
                     case (int)GameView.Dungeon:
-                        Console.WriteLine("던전입장\n이곳에서 던전으로 들어가기전 활동을 할 수 있습니다.\n\n");
-                        Console.WriteLine($"1. 쉬운 던전 | 방어력 {dungeonLv1.defensivePower} 이상 권장\n");
-                        Console.WriteLine($"2. 일반 던전 | 방어력 {dungeonLv2.defensivePower} 이상 권장\n");
-                        Console.WriteLine($"3. 어려운 던전 | 방어력 {dungeonLv3.defensivePower} 이상 권장\n");
-                        
-                        Console.WriteLine("\n0. 나가기\n");
-                        int dungeonAct = PlayerAction();
-                        
-                        if (dungeonAct == 0) gamestate = 1;
-                        else if (dungeonAct == 1)
-                        {
-                            dungeonLv1.Fight(player);
-                            dungeonAct = PlayerAction();
-                        }
-                        else if (dungeonAct == 2)
-                        {
-                            dungeonLv2.Fight(player);
-                            dungeonAct = PlayerAction();
-                        }
-                        else if (dungeonAct == 3)
-                        {
-                            dungeonLv3.Fight(player);
-                            dungeonAct = PlayerAction();
-                        }
-                        else Console.WriteLine("잘못된 입력입니다.\n");
-
-                        GameOver = player.DieCheck();
+                        Dungeon();
                         break;
 
-
                     case (int)GameView.Heals:
-                        Console.Write("휴식하기\n500 G 를 내면 최대 체력의 50%를 회복할 수 있습니다. ");
-                        Console.WriteLine($"(보유 골드 : {player.Gold} G)\n");
-                        Console.WriteLine("\n1. 휴식하기\n0. 나가기\n");                       
-                        PlayerAct = PlayerAction();
-                        if(PlayerAct == 0) gamestate = 1;
-                        else if(PlayerAct == 1)
-                        {
-                            if (player.Gold >= 500 && player.Hp != player.maxHp)
-                            {
-                                Console.WriteLine($"체력이 {(player.Hp > player.maxHp / 2 ? player.maxHp - player.Hp : player.maxHp / 2)} 회복되었습니다.\n");
-                                player.Hp += player.maxHp / 2;
-                                if (player.Hp > player.maxHp) player.Hp = player.maxHp;
-                                player.Gold -= 500;
-                                gamestate = 1;                                
-                                Console.WriteLine("\n0. 나가기\n");
-                                PlayerAct = PlayerAction();
-                            }
-                            else if(player.Hp == player.maxHp)
-                            {
-                                Console.WriteLine("최대 체력입니다.\n");
-                                Console.WriteLine("\n0. 나가기\n");
-                                PlayerAct = PlayerAction();
-                            }
-                            else if(player.Gold < 500)
-                            {
-                                Console.WriteLine("골드가 부족합니다\n");
-                                Console.WriteLine("\n0. 나가기\n");
-                                PlayerAct = PlayerAction();
-                            }else Console.WriteLine("잘못된 입력입니다.\n");
-                        }
+                        Heals();
+                        break;
+
+                    case (int)GameView.Save:
+                        Save();
+                        break;
+
+                    case (int)GameView.Load:
+                        Load();
                         break;
 
                     case 0:
@@ -371,6 +136,301 @@ namespace Text_RPG
             AtNum = int.TryParse(SetStr, out NumCheck) ? int.Parse(SetStr) : -1;
             Console.Clear();
             return AtNum;
+        }
+        static void MainMenu()
+        {
+            Console.WriteLine("스파르타 마을에 오신 여러분 환영합니다.");
+            Console.WriteLine($">>> {player.Name}님 원하시는 행동을 입력해주세요");
+            Console.WriteLine("1. 상태 보기\n2. 인벤토리\n3. 상점\n4. 던전\n5. 휴식하기\n6. 저장하기\n7. 불러오기\n0. 게임종료");
+            Console.WriteLine();
+            PlayerAct = PlayerAction();
+            if (PlayerAct == -1)
+            {
+                Console.WriteLine("잘못된 입력입니다.\n");
+            }
+            else if (PlayerAct == 0) gamestate = PlayerAct;
+            else gamestate = PlayerAct + 1;
+            Console.Clear();
+        }
+        static void PlayerState()
+        {
+            Console.WriteLine("상태 보기\n캐릭터 정보가 표시됩니다.");
+            Console.WriteLine($"Lv. {(player.Level == player.LevelDic.Count ? player.Level + " (만랩)" : player.Level)}");
+            Console.WriteLine($"경험치: {player.Exp} / {player.LevelDic[player.Level]}");
+            Console.WriteLine($"직업: ({player.Job})");
+            Console.WriteLine($"공격력: {player.TotalAk()} ({player.Ak} + {player.itemSlot[1].Power})");
+            Console.WriteLine($"방어력: {player.TotalDef()} ({player.Def} + {player.itemSlot[0].Power})");
+            Console.WriteLine($"체  력: {player.Hp}");
+            Console.WriteLine($"Gold : {player.Gold}");
+            Console.WriteLine($"무기 : {player.itemSlot[1].Name} | + {player.itemSlot[1].Power}");
+            Console.WriteLine($"방어구: : {player.itemSlot[0].Name} | + {player.itemSlot[0].Power}");
+            Console.WriteLine("\n0. 나가기\n");
+            PlayerAct = PlayerAction();
+            if (PlayerAct == 0)
+            {
+                gamestate = 1;
+            }
+            else Console.WriteLine("잘못된 입력입니다.\n");
+        }
+        static void InVentory()
+        {
+            Console.WriteLine("인벤토리\n보유 중인 아이템을 관리할 수 있습니다.\n\n");
+            Console.WriteLine($"[착용 아이템]\n무기: {player.itemSlot[1].Name}\n방어구: {player.itemSlot[0].Name}\n\n");
+            Console.WriteLine("[아이템 목록]\n");
+            for (int i = 1; i <= player.InVentoryList.Count; i++)
+            {
+                if (player.InVentoryList[i - 1].Type == (int)ItemType.Weapon)
+                {
+                    Console.WriteLine($"-{(player.itemSlot[1].Id == player.InVentoryList[i - 1].Id ? "[E]" : "")} {player.InVentoryList[i - 1].Name} | 공격력 +{player.InVentoryList[i - 1].Power} | {player.InVentoryList[i - 1].Text}");
+                }
+                else if (player.InVentoryList[i - 1].Type == (int)ItemType.Defense)
+                {
+                    Console.WriteLine($"-{(player.itemSlot[0].Id == player.InVentoryList[i - 1].Id ? "[E]" : "")} {player.InVentoryList[i - 1].Name} | 방어력 +{player.InVentoryList[i - 1].Power} | {player.InVentoryList[i - 1].Text}");
+                }
+            }
+            Console.WriteLine("\n1. 장착 관리\n0. 나가기\n");
+            PlayerAct = PlayerAction();
+            if (PlayerAct == 0)
+            {
+                //메인 메뉴
+                gamestate = 1;
+            }
+            else if (PlayerAct == 1)
+            {
+                Console.WriteLine("인벤토리 - 장착 관리\n보유 중인 아이템을 관리할 수 있습니다.\n\n");
+                Console.WriteLine($"[착용 아이템]\n무기: {player.itemSlot[1].Name}\n방어구: {player.itemSlot[0].Name}\n\n");
+                Console.WriteLine("[아이템 목록]\n");
+                for (int i = 1; i < player.InVentoryList.Count + 1; i++)
+                {
+                    if (player.InVentoryList[i - 1].Type == (int)ItemType.Weapon)
+                    {
+                        Console.WriteLine($"- {i} {(player.itemSlot[1].Id == player.InVentoryList[i - 1].Id ? "[E]" : "")} {player.InVentoryList[i - 1].Name} | 공격력 +{player.InVentoryList[i - 1].Power} | {player.InVentoryList[i - 1].Text}");
+
+                    }
+                    else if (player.InVentoryList[i - 1].Type == (int)ItemType.Defense)
+                    {
+                        Console.WriteLine($"- {i} {(player.itemSlot[0].Id == player.InVentoryList[i - 1].Id ? "[E]" : "")} {player.InVentoryList[i - 1].Name} | 방어력 +{player.InVentoryList[i - 1].Power} | {player.InVentoryList[i - 1].Text}");
+
+                    }
+                }
+
+                inVenItemNum = 0;
+                Console.WriteLine("\n0. 나가기\n");
+                int PlayerEquipAct = PlayerAction();
+
+                if (PlayerEquipAct == 0)
+                {
+                    gamestate = 1;
+                    PlayerEquipAct = -1;
+                }
+                else if (player.InVentoryList.Count == 0 || PlayerEquipAct > player.InVentoryList.Count || PlayerEquipAct < 0) Console.WriteLine("잘못된 입력입니다.\n");
+                else
+                {
+                    if (player.InVentoryList[PlayerEquipAct - 1].Type == (int)ItemType.Weapon)
+                    {
+                        player.itemSlot[1] = player.InVentoryList[PlayerEquipAct - 1];
+                    }
+                    else if (player.InVentoryList[PlayerEquipAct - 1].Type == (int)(ItemType.Defense))
+                    {
+                        player.itemSlot[0] = player.InVentoryList[PlayerEquipAct - 1];
+                    }
+                }
+
+            }
+        }
+        static void Shop()
+        {
+            Console.WriteLine("상점\n필요한 아이템을 얻을 수 있는 상점입니다.\n\n");
+            Console.WriteLine($"[보유 골드]\n{player.Gold} G\n\n");
+            Console.WriteLine("[아이템 목록]\n");
+            foreach (KeyValuePair<int, Item> item in ItemDic)
+            {
+                if (item.Key != 0)
+                {
+                    Item shopItem = item.Value;
+                    if (shopItem.Type == (int)ItemType.Weapon)
+                        Console.WriteLine($"- {shopItem.Name} | 공격력 +{shopItem.Power} | {shopItem.Text} | {(item.Value.ShopState ? shopItem.Price : "구매완료")} {(item.Value.ShopState ? "G" : "")}");
+                    else if (shopItem.Type == (int)ItemType.Defense)
+                    {
+                        Console.WriteLine($"- {shopItem.Name} | 방어력 +{shopItem.Power} | {shopItem.Text} | {(item.Value.ShopState ? shopItem.Price : "구매완료")} {(item.Value.ShopState ? "G" : "")}");
+                    }
+                }
+            }
+            Console.WriteLine("\n1. 아이템 구매\n2. 아이템 판매\n0. 나가기\n");
+            PlayerAct = PlayerAction();
+            if (PlayerAct == 0)
+            {
+                //메인 메뉴
+                gamestate = 1;
+            }
+            else if (PlayerAct == 1)
+            {
+                //아이템 구매
+                Console.WriteLine("상점 - 아이템 구매\n구매할 아이템을 선택해주세요..\n\n");
+                Console.WriteLine($"[보유 골드]\n{player.Gold} G\n\n");
+                Console.WriteLine("[아이템 목록]\n");
+                foreach (KeyValuePair<int, Item> item in ItemDic)
+                {
+                    if (item.Key != 0)
+                    {
+                        Item shopItem = item.Value;
+                        if (shopItem.Type == (int)ItemType.Weapon)
+                        {
+                            Console.WriteLine($"- {shopItem.Id} {shopItem.Name} | 공격력 +{shopItem.Power} | {shopItem.Text} | {(item.Value.ShopState ? shopItem.Price : "구매완료")} {(item.Value.ShopState ? "G" : "")}");
+                        }
+                        else if (shopItem.Type == (int)ItemType.Defense)
+                        {
+                            Console.WriteLine($"- {shopItem.Id} {shopItem.Name} | 방어력 +{shopItem.Power} | {shopItem.Text} | {(item.Value.ShopState ? shopItem.Price : "구매완료")} {(item.Value.ShopState ? "G" : "")}");
+                        }
+                    }
+                }
+                Console.WriteLine("\n0. 나가기\n");
+                int PlayerShopAct = PlayerAction();
+
+                if (PlayerShopAct == 0)
+                {
+                    PlayerAct = 0;
+                }
+                else
+                {
+                    if (PlayerShopAct > ItemDic.Count || PlayerShopAct < 0) { Console.WriteLine("잘못된 입력입니다.\n"); }
+                    else if (!ItemDic[PlayerShopAct].ShopState)
+                    {
+                        Console.WriteLine("이미 구매한 아이템입니다.\n");
+                    }
+                    else if (player.Gold >= ItemDic[PlayerShopAct].Price)
+                    {
+                        player.Gold -= ItemDic[PlayerShopAct].Price;
+                        player.AddInVentory(ItemDic[PlayerShopAct]);
+                        ItemDic[PlayerShopAct].ShopState = false;
+                        Console.WriteLine("구매를 완료했습니다.\n");
+                    }
+                    else
+                    {
+                        Console.WriteLine("골드가 부족합니다.\n");
+                    }
+                }
+            }
+            else if (PlayerAct == 2)
+            {
+                //아이템 판매
+                Console.WriteLine("[아이템 목록]\n");
+                Console.WriteLine("상점 - 아이템 판매\n판매할 아이템을 선택해주세요.\n\n");
+                Console.WriteLine($"[보유 골드]\n{player.Gold} G\n\n");
+                Console.WriteLine("[아이템 목록]\n");
+                int num = 1;
+                foreach (Item item in player.InVentoryList)
+                {
+                    Console.WriteLine($"- {num} {item.Name} | 방어력 +{item.Power} | {item.Text} | {(item.Price)} G ");
+                    num++;
+                }
+                Console.WriteLine("\n0. 나가기\n");
+                int PlayerShopAct = PlayerAction();
+
+                if (PlayerShopAct == 0)
+                {
+                    PlayerAct = 0;
+                }
+                else if (player.InVentoryList.Count == 0 || PlayerShopAct > player.InVentoryList.Count || PlayerShopAct < 0) Console.WriteLine("잘못된 입력입니다.\n");
+                else
+                {
+                    player.Gold += (int)(player.InVentoryList[PlayerShopAct - 1].Price * 0.85f);
+                    ItemDic[player.InVentoryList[PlayerShopAct - 1].Id].ShopState = true;
+                    if (player.itemSlot[0].Id == player.InVentoryList[PlayerShopAct - 1].Id)
+                    {
+                        player.itemSlot[0] = ItemDic[0];
+                    }
+                    else player.itemSlot[1] = ItemDic[0];
+                    player.InVentoryList.Remove(player.InVentoryList[PlayerShopAct - 1]);
+                }
+            }
+            else Console.WriteLine("잘못된 입력입니다.\n");
+        }
+        static void Dungeon()
+        {
+            Dungeon dungeonLv1 = new Dungeon(20, 10, 1000, 1);
+            Dungeon dungeonLv2 = new Dungeon(30, 15, 2000, 3);
+            Dungeon dungeonLv3 = new Dungeon(40, 20, 3000, 5);
+
+            Console.WriteLine("던전입장\n이곳에서 던전으로 들어가기전 활동을 할 수 있습니다.\n");
+            Console.WriteLine($"1. 쉬운 던전 | 방어력 {dungeonLv1.defensivePower} 이상 권장");
+            Console.WriteLine($"2. 일반 던전 | 방어력 {dungeonLv2.defensivePower} 이상 권장");
+            Console.WriteLine($"3. 어려운 던전 | 방어력 {dungeonLv3.defensivePower} 이상 권장");
+
+            Console.WriteLine("0. 나가기\n");
+            int dungeonAct = PlayerAction();
+
+            if (dungeonAct == 0) gamestate = 1;
+            else if (dungeonAct == 1)
+            {
+                dungeonLv1.Fight(player);
+                dungeonAct = PlayerAction();
+            }
+            else if (dungeonAct == 2)
+            {
+                dungeonLv2.Fight(player);
+                dungeonAct = PlayerAction();
+            }
+            else if (dungeonAct == 3)
+            {
+                dungeonLv3.Fight(player);
+                dungeonAct = PlayerAction();
+            }
+            else Console.WriteLine("잘못된 입력입니다.\n");
+
+            GameOver = player.DieCheck();
+        }
+        static void Heals()
+        {
+            Console.Write("휴식하기\n500 G 를 내면 최대 체력의 50%를 회복할 수 있습니다. ");
+            Console.WriteLine($"(보유 골드 : {player.Gold} G)\n");
+            Console.WriteLine("\n1. 휴식하기\n0. 나가기\n");
+            PlayerAct = PlayerAction();
+            if (PlayerAct == 0) gamestate = 1;
+            else if (PlayerAct == 1)
+            {
+                if (player.Gold >= 500 && player.Hp != player.maxHp)
+                {
+                    Console.WriteLine($"체력이 {(player.Hp > player.maxHp / 2 ? player.maxHp - player.Hp : player.maxHp / 2)} 회복되었습니다.\n");
+                    player.Hp += player.maxHp / 2;
+                    if (player.Hp > player.maxHp) player.Hp = player.maxHp;
+                    player.Gold -= 500;
+                    gamestate = 1;
+                    Console.WriteLine("\n0. 나가기\n");
+                    PlayerAct = PlayerAction();
+                }
+                else if (player.Hp == player.maxHp)
+                {
+                    Console.WriteLine("최대 체력입니다.\n");
+                    Console.WriteLine("\n0. 나가기\n");
+                    PlayerAct = PlayerAction();
+                }
+                else if (player.Gold < 500)
+                {
+                    Console.WriteLine("골드가 부족합니다\n");
+                    Console.WriteLine("\n0. 나가기\n");
+                    PlayerAct = PlayerAction();
+                }
+                else Console.WriteLine("잘못된 입력입니다.\n");
+            }
+        }
+        static void Save()
+        {
+            playerData.PlayerDataSave(player);
+            fileSave.XmlSave(playerData);
+            Console.WriteLine("데이터 저장\n데이터가 저장되었습니다");
+            Console.WriteLine("\n아무 키나 입력하세요.\n");
+            PlayerAction();
+            gamestate = 1;
+        }
+        static void Load()
+        {
+            playerData = fileSave.XmlLoad();
+            playerData.PlayerDataLoad(player);
+            Console.WriteLine("데이터 로드\n데이터가 로드되었습니다");
+            Console.WriteLine("\n아무 키나 입력하세요.\n");
+            PlayerAction();
+            gamestate = 1;
         }
     }
 
@@ -465,6 +525,9 @@ namespace Text_RPG
         public int Type {  get; set; } // 아이템 타입 0 = 방어구, 1 = 무기
         public bool EquipState {  get; set; } // 아이템 장착 여부
         public bool ShopState { get; set; } // 아이템 판매 여부
+        public Item() // 직렬화 하기 위해서는 기본 생성자가 필요
+        {
+        }
         public Item(int ItenId, String ItemName, String ItemText, int ItemPower, int ItemPrice, int ItemType, bool ItemEquipStaet, bool ItemShopState)
         {
             Id = ItenId;
@@ -506,7 +569,7 @@ namespace Text_RPG
         }
         public void Fight(Player player)
         {
-            if (defensivePower > player.Def)
+            if (defensivePower >= player.Def)
             {
                 Random rand = new Random();
                 int failnum = rand.Next(1, 10);
@@ -554,14 +617,124 @@ namespace Text_RPG
         InVentory,
         Shop,
         Dungeon,
-        Heals
+        Heals,
+        Save,
+        Load
     }
-
     public enum ItemType
     {
         Not = 0,
         Defense,
         Weapon,
         Sale
+    }
+
+    class FileSave
+    {        
+        public void XmlSave(PlayerData PlayerData)
+        {
+            XmlSerializer serializer = new XmlSerializer(typeof(PlayerData));
+            using (FileStream stream = new FileStream("C:\\Users\\97575\\OneDrive\\문서\\바탕 화면\\Project\\TextRPG\\SaveData\\playerData.xml", FileMode.Create))
+            {
+                serializer.Serialize(stream, PlayerData);
+            }
+        }
+        public PlayerData XmlLoad() 
+        {
+            PlayerData loadedPlayer;
+            XmlSerializer serializer = new XmlSerializer(typeof(PlayerData));
+            using (FileStream stream = new FileStream("C:\\Users\\97575\\OneDrive\\문서\\바탕 화면\\Project\\TextRPG\\SaveData\\playerData.xml", FileMode.Open))
+            {
+                loadedPlayer = (PlayerData)serializer.Deserialize(stream);
+            }
+
+            return loadedPlayer;
+        }
+    }
+    public class PlayerData
+    {
+        
+        [XmlIgnore] // 직렬화 할때 바로 아래의 필드는 무시
+        public Dictionary<int, int> LevelDic = new Dictionary<int, int>();
+
+        // Dictionary는 XML 파일로 변환 할 수 없기 떄문에 List 형식으로 변환해서 저장할 필요가 있다.        
+        public List<LevelDickeyValue> LevelDicKey = new List<LevelDickeyValue>();
+        /*
+        처음엔 KeyValuePair로 변화하려 했지만 KeyValuePair를 XmlSerializer로 변환하는대 문제가 있어서 key, Value 값을 가지는 클레스로 리스트를 만들어 해결됨
+        public List<KeyValuePair<int, int>> LevelDicList
+        {
+            get => new List<KeyValuePair<int, int>>(LevelDic);
+            set => LevelDic = new Dictionary<int, int>(value);
+        }
+        */
+
+        public Item[] itemSlot = new Item[2]; // 0 = 방어구, 1 = 무기
+        public List<Item> InVentoryList = new List<Item>(); // 플레이어 인벤토리 리스트
+        public int Level { get; set; } // 플레이어 레벨
+        public int Exp { get; set; } // 플레이어 경험치
+        public string Name { get; set; } // 플레이어 이름
+        public string Job { get; set; } // 플레이어 직업
+        public int Ak { get; set; } // 플레이어 공격력
+        public int Def { get; set; } // 플레이어 방어력
+        public int Hp { get; set; } // 플레이어 현재 생명력
+        public int maxHp { get; set; } // 플레이어 최대 생명력
+        public int Gold { get; set; } // 플레이어 골드
+        public bool Die { get; set; } // 플레이어 사망여부
+        public PlayerData()
+        {
+        }
+        public void PlayerDataSave(Player player)
+        {
+            LevelDic = player.LevelDic;
+            LevelDicKey = new List<LevelDickeyValue>();
+            foreach (KeyValuePair<int, int> levelDic in LevelDic)
+            {
+                LevelDicKey.Add(new LevelDickeyValue(levelDic.Key, levelDic.Value));
+            }
+            itemSlot = player.itemSlot;
+            InVentoryList = player.InVentoryList;
+            Level = player.Level;
+            Exp = player.Exp;
+            Name = player.Name;
+            Job = player.Job;
+            Ak = player.Ak;
+            Def = player.Def;
+            Hp = player.Hp;
+            maxHp = player.maxHp;
+            Gold = player.Gold;
+            Die = player.Die;
+        }
+        public void PlayerDataLoad(Player player)
+        {
+            LevelDic = new Dictionary<int, int>();
+            foreach (LevelDickeyValue levelDic in LevelDicKey)
+            {
+                LevelDic.Add(levelDic.key, levelDic.value);
+            }
+            player.LevelDic = LevelDic;
+            player.itemSlot = itemSlot;
+            player.InVentoryList = InVentoryList;
+            player.Level = Level;
+            player.Exp = Exp;
+            player.Name = Name;
+            player.Job = Job;
+            player.Ak = Ak;
+            player.Def = Def;
+            player.Hp = Hp;
+            player.maxHp = maxHp;
+            player.Gold = Gold;
+            player.Die = Die;
+        }
+    }
+    public class LevelDickeyValue
+    {
+        public int key { get; set; }
+        public int value{ get; set; }
+        public LevelDickeyValue() { }
+        public LevelDickeyValue(int Key, int Value) 
+        {
+            key = Key;
+            value = Value;
+        }
     }
 }
